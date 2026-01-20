@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MAWRID - Smart Masjid</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <!-- Fonts: Playfair Display (Serif) & Space Mono (Data) -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-color: #f4f4f0;
+            --ink-color: #1a1a1a;
+            --accent-color: #ff4d00; /* Safety Orange */
+        }
+        
+        body { 
+            font-family: 'Space Mono', monospace; 
+            background-color: var(--bg-color);
+            color: var(--ink-color);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .font-serif { font-family: 'Playfair Display', serif; }
+        
+        /* Brutalist Scrollbar */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #000; }
+
+        /* Marquee Animation */
+        .marquee-container { overflow: hidden; white-space: nowrap; }
+        .marquee-content { display: inline-block; animation: marquee 15s linear infinite; }
+        @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+
+        /* Utility */
+        .border-ink { border-color: var(--ink-color); }
+        .bg-ink { background-color: var(--ink-color); }
+        .text-ink { color: var(--ink-color); }
+        
+        [x-cloak] { display: none !important; }
+    </style>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'paper': '#f4f4f0',
+                        'ink': '#1a1a1a',
+                        'alert': '#ff4d00',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="h-screen flex flex-col overflow-hidden max-w-md mx-auto border-x-2 border-ink"
+      x-data="app()" x-init="init()">
+
+    <!-- HEADER: Marquee & Date -->
+    <header class="border-b-2 border-ink bg-paper z-20">
+        <div class="bg-ink text-paper py-1 text-[10px] uppercase font-bold tracking-widest marquee-container border-b-2 border-ink">
+            <div class="marquee-content">
+                <span>Welcome to Al-Mawrid Smart Masjid • Jumu'ah Khutbah at 1:15 PM • Parking Lot B is full • Eid Prayer Registration Open • </span>
+                <span>Welcome to Al-Mawrid Smart Masjid • Jumu'ah Khutbah at 1:15 PM • Parking Lot B is full • Eid Prayer Registration Open • </span>
+            </div>
+        </div>
+        <div class="p-4 flex justify-between items-end">
+            <div>
+                <p class="text-xs uppercase tracking-widest text-gray-500 mb-1">Dubai, UAE</p>
+                <h1 class="text-3xl font-serif italic font-bold leading-none">Al-Mawrid</h1>
+            </div>
+            <div class="text-right">
+                <p class="text-xs font-bold" x-text="hijriDate"></p>
+                <p class="text-[10px] text-gray-500 uppercase">Hijri 1447</p>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 overflow-y-auto bg-paper relative">
+        
+        <!-- TAB: DASHBOARD -->
+        <div x-show="tab === 'dashboard'" x-transition.opacity.duration.200ms>
+            
+            <!-- Hero: Next Prayer (Brutalist Box) -->
+            <div class="border-b-2 border-ink relative group">
+                <div class="absolute top-0 left-0 bg-alert text-white text-[10px] font-bold px-2 py-1 uppercase">
+                    Current Status
+                </div>
+                <div class="p-6 pt-10 flex flex-col items-center justify-center text-center">
+                    <p class="font-serif text-xl italic mb-2">Next: <span x-text="nextPrayer.name"></span></p>
+                    <div class="text-6xl font-bold tracking-tighter mb-2" x-text="countdown"></div>
+                    <p class="text-xs uppercase tracking-widest text-gray-500">Until Iqamah</p>
+                </div>
+                
+                <!-- Live Sensor Bar -->
+                <div class="flex border-t-2 border-ink divide-x-2 divide-ink h-12">
+                    <div class="flex-1 flex items-center justify-center gap-2 text-xs font-bold hover:bg-ink hover:text-white transition-colors cursor-crosshair">
+                        <i class="ph ph-car text-lg"></i> 
+                        <span>LOT: FULL</span>
+                    </div>
+                    <div class="flex-1 flex items-center justify-center gap-2 text-xs font-bold hover:bg-ink hover:text-white transition-colors cursor-crosshair">
+                        <i class="ph ph-drop text-lg"></i>
+                        <span>WUDU: 20%</span>
+                    </div>
+                    <div class="flex-1 flex items-center justify-center gap-2 text-xs font-bold hover:bg-ink hover:text-white transition-colors cursor-crosshair">
+                        <i class="ph ph-users text-lg"></i>
+                        <span>CAP: 45%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Prayer Grid -->
+            <div class="border-b-2 border-ink">
+                <template x-for="p in prayers" :key="p.name">
+                    <div class="flex justify-between items-center p-4 border-b border-ink last:border-b-0 hover:bg-gray-200 transition-colors"
+                         :class="p.name === nextPrayer.name ? 'bg-ink text-white hover:bg-black' : ''">
+                        <div class="flex items-center gap-4">
+                            <span class="font-serif text-xl w-24" :class="p.name === nextPrayer.name ? 'italic' : ''" x-text="p.name"></span>
+                            <span class="text-xs border border-current px-1 uppercase" x-show="p.name === nextPrayer.name">Next</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="block font-bold" x-text="p.time"></span>
+                            <span class="block text-[10px] opacity-60">IQAMAH <span x-text="p.iqamah"></span></span>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Quick Action: Report Issue -->
+            <button class="w-full p-4 text-left flex justify-between items-center hover:bg-alert hover:text-white transition-colors border-b-2 border-ink group">
+                <span class="font-serif font-bold italic text-lg">Report Maintenance</span>
+                <i class="ph ph-arrow-right text-xl group-hover:translate-x-1 transition-transform"></i>
+            </button>
+        </div>
+
+        <!-- TAB: COLLECTIVE (Community) -->
+        <div x-show="tab === 'collective'" x-cloak class="min-h-full">
+            <div class="p-4 border-b-2 border-ink">
+                <h2 class="font-serif text-3xl italic mb-2">Smart Khatam</h2>
+                <p class="text-xs leading-relaxed max-w-xs">
+                    Community goal: Finish the Quran by Friday. Tap a block to claim a Juz/Page.
+                </p>
+                <div class="mt-4 flex justify-between items-end">
+                    <span class="text-4xl font-bold">78%</span>
+                    <span class="text-xs uppercase tracking-widest">Completed</span>
+                </div>
+                <!-- Progress Bar -->
+                <div class="w-full h-4 border-2 border-ink mt-2 p-0.5">
+                    <div class="h-full bg-alert w-[78%]"></div>
+                </div>
+            </div>
+
+            <!-- Grid Visualization -->
+            <div class="grid grid-cols-6 border-b-2 border-ink">
+                <template x-for="i in 30">
+                    <button class="aspect-square border-r border-b border-ink flex items-center justify-center text-xs font-bold hover:bg-ink hover:text-white transition-colors relative"
+                        :class="i < 24 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : ''">
+                        <span x-text="i"></span>
+                        <div x-show="i < 24" class="absolute inset-0 flex items-center justify-center">
+                            <i class="ph ph-check text-lg text-ink"></i>
+                        </div>
+                    </button>
+                </template>
+            </div>
+
+            <!-- Events List -->
+            <div class="bg-ink text-white p-4">
+                <h3 class="font-serif italic text-xl border-b border-white/20 pb-2 mb-4">Upcoming</h3>
+                <div class="space-y-4">
+                    <div class="flex gap-4">
+                        <div class="text-center w-12">
+                            <span class="block text-2xl font-bold">22</span>
+                            <span class="text-[10px] uppercase">Jan</span>
+                        </div>
+                        <div>
+                            <p class="font-bold text-sm">Fiqh of Finance</p>
+                            <p class="text-xs text-gray-400">Guest Speaker: Dr. Omar</p>
+                        </div>
+                    </div>
+                     <div class="flex gap-4">
+                        <div class="text-center w-12">
+                            <span class="block text-2xl font-bold">24</span>
+                            <span class="text-[10px] uppercase">Jan</span>
+                        </div>
+                        <div>
+                            <p class="font-bold text-sm">Youth Soccer League</p>
+                            <p class="text-xs text-gray-400">Main Pitch • 4:00 PM</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: TOOLS -->
+        <div x-show="tab === 'tools'" x-cloak>
+            <div class="grid grid-cols-2 border-b-2 border-ink">
+                <!-- Qibla -->
+                <button class="aspect-square border-r border-b border-ink flex flex-col items-center justify-center gap-2 hover:bg-ink hover:text-white transition-colors group">
+                    <i class="ph ph-compass text-4xl group-hover:rotate-45 transition-transform duration-500"></i>
+                    <span class="font-serif italic">Qibla AR</span>
+                </button>
+                <!-- Tasbih -->
+                <button @click="tasbihOpen = true" class="aspect-square border-b border-ink flex flex-col items-center justify-center gap-2 hover:bg-ink hover:text-white transition-colors">
+                    <i class="ph ph-hands-praying text-4xl"></i>
+                    <span class="font-serif italic">Tasbih</span>
+                </button>
+                <!-- Donate -->
+                <button class="aspect-square border-r border-ink flex flex-col items-center justify-center gap-2 hover:bg-ink hover:text-white transition-colors">
+                    <i class="ph ph-coins text-4xl"></i>
+                    <span class="font-serif italic">Sadaqah</span>
+                </button>
+                <!-- Silence -->
+                <button @click="toggleFocus()" class="aspect-square flex flex-col items-center justify-center gap-2 hover:bg-alert hover:text-white transition-colors">
+                    <i class="ph ph-moon-stars text-4xl"></i>
+                    <span class="font-serif italic">Khushu Mode</span>
+                </button>
+            </div>
+            
+            <div class="p-6">
+                <h3 class="font-serif text-2xl italic mb-4">Ask the Imam</h3>
+                <div class="border-2 border-ink p-1 flex">
+                    <input type="text" placeholder="Type a question..." class="flex-1 bg-transparent border-none outline-none px-2 font-mono text-sm">
+                    <button class="bg-ink text-white px-4 py-2 text-xs font-bold uppercase hover:bg-alert transition-colors">Send</button>
+                </div>
+                <p class="text-[10px] text-gray-500 mt-2">Private & Anonymous. Answers posted on board.</p>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- BRUTALIST BOTTOM NAV -->
+    <nav class="border-t-2 border-ink bg-paper grid grid-cols-3 h-16 z-20 text-xs font-bold uppercase tracking-widest">
+        <button @click="tab = 'dashboard'" class="border-r-2 border-ink hover:bg-ink hover:text-white transition-colors flex items-center justify-center gap-2" :class="tab === 'dashboard' ? 'bg-ink text-white' : ''">
+            <span class="hidden sm:inline">Index</span> <span class="sm:hidden">01</span>
+        </button>
+        <button @click="tab = 'collective'" class="border-r-2 border-ink hover:bg-ink hover:text-white transition-colors flex items-center justify-center gap-2" :class="tab === 'collective' ? 'bg-ink text-white' : ''">
+            <span class="hidden sm:inline">Comm</span> <span class="sm:hidden">02</span>
+        </button>
+        <button @click="tab = 'tools'" class="hover:bg-ink hover:text-white transition-colors flex items-center justify-center gap-2" :class="tab === 'tools' ? 'bg-ink text-white' : ''">
+            <span class="hidden sm:inline">Tools</span> <span class="sm:hidden">03</span>
+        </button>
+    </nav>
+
+    <!-- OVERLAYS -->
+    
+    <!-- KHUSHU (FOCUS) MODE OVERLAY -->
+    <div x-show="focusMode" x-transition.opacity 
+         class="fixed inset-0 z-50 bg-black text-white flex flex-col items-center justify-between p-12 text-center select-none">
+        <div class="mt-12">
+            <h2 class="font-serif text-4xl italic mb-2">Khushu</h2>
+            <p class="font-mono text-xs uppercase tracking-[0.2em] text-gray-500">Silence • Focus • Prayer</p>
+        </div>
+        
+        <div class="text-9xl font-serif opacity-20 animate-pulse">
+            <i class="ph ph-moon-stars"></i>
+        </div>
+
+        <button @click="toggleFocus()" class="border-2 border-white px-8 py-3 text-sm font-bold uppercase tracking-widest hover:bg-white hover:text-black transition-colors">
+            Disengage
+        </button>
+    </div>
+
+    <!-- TASBIH OVERLAY -->
+    <div x-show="tasbihOpen" x-transition 
+         class="fixed inset-0 z-40 bg-paper text-ink flex flex-col">
+        <div class="flex justify-between items-center p-4 border-b-2 border-ink">
+            <span class="font-serif italic text-xl">Digital Dhikr</span>
+            <button @click="tasbihOpen = false" class="w-8 h-8 flex items-center justify-center border-2 border-ink hover:bg-ink hover:text-white"><i class="ph ph-x"></i></button>
+        </div>
+        <div class="flex-1 flex flex-col items-center justify-center" @click="count++">
+            <span class="text-[10px] uppercase tracking-widest mb-4">Tap anywhere to count</span>
+            <span class="text-9xl font-bold font-serif" x-text="String(count).padStart(2, '0')"></span>
+        </div>
+        <button @click="count = 0" class="border-t-2 border-ink p-6 text-center hover:bg-alert hover:text-white font-bold uppercase transition-colors">
+            Reset Counter
+        </button>
+    </div>
+
+    <script>
+        function app() {
+            return {
+                tab: 'dashboard',
+                focusMode: false,
+                tasbihOpen: false,
+                count: 0,
+                hijriDate: '1 Rajab',
+                countdown: '00:00:00',
+                
+                prayers: [
+                    { name: 'Fajr', time: '05:33', iqamah: '05:55' },
+                    { name: 'Dhuhr', time: '12:28', iqamah: '12:45' },
+                    { name: 'Asr', time: '15:37', iqamah: '16:00' },
+                    { name: 'Maghrib', time: '17:58', iqamah: '18:05' },
+                    { name: 'Isha', time: '19:28', iqamah: '19:45' }
+                ],
+                
+                nextPrayer: { name: 'Asr' },
+
+                init() {
+                    // Start Timer
+                    setInterval(() => {
+                        const now = new Date();
+                        const dest = new Date();
+                        dest.setHours(16, 0, 0); // Mock target: Asr Iqamah
+                        
+                        let diff = dest - now;
+                        if(diff < 0) diff = 0;
+
+                        const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                        const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                        const s = Math.floor((diff % (1000 * 60)) / 1000);
+
+                        this.countdown = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+                    }, 1000);
+                },
+
+                toggleFocus() {
+                    this.focusMode = !this.focusMode;
+                }
+            }
+        }
+    </script>
+</body>
+</html>
